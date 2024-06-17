@@ -18,8 +18,8 @@ from keras.src.applications.inception_v3 import InceptionV3
 from pydantic import BaseModel
 
 from utils.db import uploadImage
-from utils.fid_helpers import load_images_from_folder, scale_images, calculate_fid
-from utils.clip_helpers import calculate_clip_score
+# from utils.fid_helpers import load_images_from_folder, scale_images, calculate_fid
+# from utils.clip_helpers import calculate_clip_score
 
 load_dotenv()
 
@@ -548,174 +548,174 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
         raise HTTPException(status_code=500, detail="Internal server error: " + str(e))
 
 
-class CalculateFidRequest(BaseModel):
-    stability_image: str
-    getimg_image: str
+# class CalculateFidRequest(BaseModel):
+#     stability_image: str
+#     getimg_image: str
 
 
-class CalculateFidResponse(BaseModel):
-    stability_image_fid_score: float
-    getimg_image_fid_score: float
-    result: str
+# class CalculateFidResponse(BaseModel):
+#     stability_image_fid_score: float
+#     getimg_image_fid_score: float
+#     result: str
 
 
-@app.post("/calculate_fid", response_model=CalculateFidResponse)
-async def calculate_fid_endpoint(request: CalculateFidRequest):
-    try:
-        file1 = request.stability_image
-        file2 = request.getimg_image
+# @app.post("/calculate_fid", response_model=CalculateFidResponse)
+# async def calculate_fid_endpoint(request: CalculateFidRequest):
+#     try:
+#         file1 = request.stability_image
+#         file2 = request.getimg_image
 
-        download_image_response1 = requests.get(file1)
-        download_image_response2 = requests.get(file2)
+#         download_image_response1 = requests.get(file1)
+#         download_image_response2 = requests.get(file2)
 
-        if download_image_response1.status_code != 200:
-            raise HTTPException(
-                status_code=400, detail="Failed to download image from the provided URL"
-            )
-        if download_image_response2.status_code != 200:
-            raise HTTPException(
-                status_code=400, detail="Failed to download image from the provided URL"
-            )
+#         if download_image_response1.status_code != 200:
+#             raise HTTPException(
+#                 status_code=400, detail="Failed to download image from the provided URL"
+#             )
+#         if download_image_response2.status_code != 200:
+#             raise HTTPException(
+#                 status_code=400, detail="Failed to download image from the provided URL"
+#             )
 
-        model = InceptionV3(include_top=False, pooling="avg", input_shape=(299, 299, 3))
+#         model = InceptionV3(include_top=False, pooling="avg", input_shape=(299, 299, 3))
 
-        reference_image_folder = "images_training/converted"
-        reference_images = load_images_from_folder(reference_image_folder)
-        num_files = len(os.listdir(reference_image_folder))
-        reference_images = reference_images.reshape((num_files, 32, 32, 3))
+#         reference_image_folder = "images_training/converted"
+#         reference_images = load_images_from_folder(reference_image_folder)
+#         num_files = len(os.listdir(reference_image_folder))
+#         reference_images = reference_images.reshape((num_files, 32, 32, 3))
 
-        uploaded_image = Image.open(BytesIO(download_image_response1.content)).resize(
-            (32, 32)
-        )
-        uploaded_image = np.array(uploaded_image)
-        uploaded_image = np.expand_dims(uploaded_image, axis=0)
-        uploaded_image = preprocess_input(uploaded_image)
+#         uploaded_image = Image.open(BytesIO(download_image_response1.content)).resize(
+#             (32, 32)
+#         )
+#         uploaded_image = np.array(uploaded_image)
+#         uploaded_image = np.expand_dims(uploaded_image, axis=0)
+#         uploaded_image = preprocess_input(uploaded_image)
 
-        uploaded_image2 = Image.open(BytesIO(download_image_response2.content)).resize(
-            (32, 32)
-        )
-        uploaded_image2 = np.array(uploaded_image2)
-        uploaded_image2 = np.expand_dims(uploaded_image2, axis=0)
-        uploaded_image2 = preprocess_input(uploaded_image2)
+#         uploaded_image2 = Image.open(BytesIO(download_image_response2.content)).resize(
+#             (32, 32)
+#         )
+#         uploaded_image2 = np.array(uploaded_image2)
+#         uploaded_image2 = np.expand_dims(uploaded_image2, axis=0)
+#         uploaded_image2 = preprocess_input(uploaded_image2)
 
-        images1 = np.repeat(uploaded_image, num_files, axis=0)
-        images2 = np.repeat(uploaded_image2, num_files, axis=0)
+#         images1 = np.repeat(uploaded_image, num_files, axis=0)
+#         images2 = np.repeat(uploaded_image2, num_files, axis=0)
 
-        reference_images = reference_images.astype("float32")
-        images1 = images1.astype("float32")
-        images2 = images2.astype("float32")
+#         reference_images = reference_images.astype("float32")
+#         images1 = images1.astype("float32")
+#         images2 = images2.astype("float32")
 
-        reference_images = scale_images(reference_images, (299, 299, 3))
-        images1 = scale_images(images1, (299, 299, 3))
-        images2 = scale_images(images2, (299, 299, 3))
+#         reference_images = scale_images(reference_images, (299, 299, 3))
+#         images1 = scale_images(images1, (299, 299, 3))
+#         images2 = scale_images(images2, (299, 299, 3))
 
-        images1 = preprocess_input(images1)
-        images2 = preprocess_input(images2)
+#         images1 = preprocess_input(images1)
+#         images2 = preprocess_input(images2)
 
-        fid_score1 = calculate_fid(model, reference_images, images1)
-        fid_score2 = calculate_fid(model, reference_images, images2)
+#         fid_score1 = calculate_fid(model, reference_images, images1)
+#         fid_score2 = calculate_fid(model, reference_images, images2)
 
-        result = ""
-        if fid_score1 < fid_score2:
-            result = (
-                "Stability model has displayed best results according to the FID score."
-            )
-        elif fid_score1 > fid_score2:
-            result = (
-                "GetImg model has displayed best results according to the FID score."
-            )
-        else:
-            result = (
-                "Both models have displayed similar results according to the FID score."
-            )
+#         result = ""
+#         if fid_score1 < fid_score2:
+#             result = (
+#                 "Stability model has displayed best results according to the FID score."
+#             )
+#         elif fid_score1 > fid_score2:
+#             result = (
+#                 "GetImg model has displayed best results according to the FID score."
+#             )
+#         else:
+#             result = (
+#                 "Both models have displayed similar results according to the FID score."
+#             )
 
-        return {
-            "stability_image_fid_score": fid_score1,
-            "getimg_image_fid_score": fid_score2,
-            "result": result,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-class CalculateClipScoreRequest(BaseModel):
-    prompt: str
-    stability_image: str
-    getimg_image: str
+#         return {
+#             "stability_image_fid_score": fid_score1,
+#             "getimg_image_fid_score": fid_score2,
+#             "result": result,
+#         }
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-class CalculateClipScoreResponse(BaseModel):
-    stability_image_clip_score: float
-    getimg_image_clip_score: float
-    result: str
+# class CalculateClipScoreRequest(BaseModel):
+#     prompt: str
+#     stability_image: str
+#     getimg_image: str
 
 
-@app.post("/calculate_clip_score", response_model=CalculateClipScoreResponse)
-async def calculate_clip_score_endpoint(request: CalculateClipScoreRequest):
-    try:
-        prompt = request.prompt
-        file1 = request.stability_image
-        file2 = request.getimg_image
+# class CalculateClipScoreResponse(BaseModel):
+#     stability_image_clip_score: float
+#     getimg_image_clip_score: float
+#     result: str
 
-        download_image_response1 = requests.get(file1)
-        download_image_response2 = requests.get(file2)
 
-        if download_image_response1.status_code != 200:
-            raise HTTPException(
-                status_code=400, detail="Failed to download image from the provided URL"
-            )
-        if download_image_response2.status_code != 200:
-            raise HTTPException(
-                status_code=400, detail="Failed to download image from the provided URL"
-            )
+# @app.post("/calculate_clip_score", response_model=CalculateClipScoreResponse)
+# async def calculate_clip_score_endpoint(request: CalculateClipScoreRequest):
+#     try:
+#         prompt = request.prompt
+#         file1 = request.stability_image
+#         file2 = request.getimg_image
 
-        uploaded_image1 = Image.open(BytesIO(download_image_response1.content)).resize(
-            (32, 32)
-        )
-        uploaded_image1 = np.array(uploaded_image1)
-        uploaded_image1 = np.expand_dims(uploaded_image1, axis=0)
-        uploaded_image1 = preprocess_input(uploaded_image1)
+#         download_image_response1 = requests.get(file1)
+#         download_image_response2 = requests.get(file2)
 
-        uploaded_image2 = Image.open(BytesIO(download_image_response2.content)).resize(
-            (32, 32)
-        )
-        uploaded_image2 = np.array(uploaded_image2)
-        uploaded_image2 = np.expand_dims(uploaded_image2, axis=0)
-        uploaded_image2 = preprocess_input(uploaded_image2)
+#         if download_image_response1.status_code != 200:
+#             raise HTTPException(
+#                 status_code=400, detail="Failed to download image from the provided URL"
+#             )
+#         if download_image_response2.status_code != 200:
+#             raise HTTPException(
+#                 status_code=400, detail="Failed to download image from the provided URL"
+#             )
 
-        images1 = np.repeat(uploaded_image1, 1, axis=0)
-        images2 = np.repeat(uploaded_image2, 1, axis=0)
+#         uploaded_image1 = Image.open(BytesIO(download_image_response1.content)).resize(
+#             (32, 32)
+#         )
+#         uploaded_image1 = np.array(uploaded_image1)
+#         uploaded_image1 = np.expand_dims(uploaded_image1, axis=0)
+#         uploaded_image1 = preprocess_input(uploaded_image1)
 
-        images1 = images1.reshape((1, 32, 32, 3))
-        images2 = images2.reshape((1, 32, 32, 3))
+#         uploaded_image2 = Image.open(BytesIO(download_image_response2.content)).resize(
+#             (32, 32)
+#         )
+#         uploaded_image2 = np.array(uploaded_image2)
+#         uploaded_image2 = np.expand_dims(uploaded_image2, axis=0)
+#         uploaded_image2 = preprocess_input(uploaded_image2)
 
-        prompts = [prompt]
+#         images1 = np.repeat(uploaded_image1, 1, axis=0)
+#         images2 = np.repeat(uploaded_image2, 1, axis=0)
 
-        sd_clip_score1 = calculate_clip_score(images1, prompts)
-        sd_clip_score2 = calculate_clip_score(images2, prompts)
+#         images1 = images1.reshape((1, 32, 32, 3))
+#         images2 = images2.reshape((1, 32, 32, 3))
 
-        result = ""
-        if sd_clip_score1 < sd_clip_score2:
-            result = (
-                "GetImg model has displayed best results according to the Clip Score."
-            )
-        elif sd_clip_score1 > sd_clip_score2:
-            result = (
-                "Stability model has displayed best results according to the Clip Score"
-            )
-        else:
-            result = (
-                "Both models have displayed best results according to the clip score."
-            )
+#         prompts = [prompt]
 
-        return {
-            "stability_image_clip_score": sd_clip_score1,
-            "getimg_image_clip_score": sd_clip_score2,
-            "result": result,
-        }
+#         sd_clip_score1 = calculate_clip_score(images1, prompts)
+#         sd_clip_score2 = calculate_clip_score(images2, prompts)
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal server error")
+#         result = ""
+#         if sd_clip_score1 < sd_clip_score2:
+#             result = (
+#                 "GetImg model has displayed best results according to the Clip Score."
+#             )
+#         elif sd_clip_score1 > sd_clip_score2:
+#             result = (
+#                 "Stability model has displayed best results according to the Clip Score"
+#             )
+#         else:
+#             result = (
+#                 "Both models have displayed best results according to the clip score."
+#             )
+
+#         return {
+#             "stability_image_clip_score": sd_clip_score1,
+#             "getimg_image_clip_score": sd_clip_score2,
+#             "result": result,
+#         }
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 if __name__ == "__main__":

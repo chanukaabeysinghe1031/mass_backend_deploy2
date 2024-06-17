@@ -25,11 +25,13 @@ load_dotenv()
 
 app = FastAPI()
 
-origins = ["http://localhost:4000"]
+origins = [
+    "http://localhost:4000"
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -39,7 +41,7 @@ FOOCUS_URL = "http://127.0.0.1:8888/v1/"
 GETIMG_API_KEY = os.getenv("GETIMG_API_KEY")
 STABILITY_API_KEY = os.getenv("STABILITY_API_KEY")
 STABILITY_ENGINE_ID = "stable-diffusion-v1-6"
-STABILITY_API_HOST = "https://api.stability.ai"
+STABILITY_API_HOST = 'https://api.stability.ai'
 
 
 def remove_images(file_paths: List[str]):
@@ -92,7 +94,7 @@ async def text_to_image(request: TextToImageRequest):
             response = requests.post(
                 "http://127.0.0.1:8888/v1/generation/text-to-image",
                 headers=headers,
-                json=input_data,
+                json=input_data
             )
             if response.status_code == 200:
                 response_json = response.json()
@@ -100,9 +102,7 @@ async def text_to_image(request: TextToImageRequest):
                 uploaded_url = await uploadImage(image_url, user_id, model_id)
                 image_urls.append({"url": uploaded_url, "finish_reason": "SUCCESS"})
             else:
-                raise HTTPException(
-                    status_code=response.status_code, detail=response.text
-                )
+                raise HTTPException(status_code=response.status_code, detail=response.text)
 
         elif model_id == "sd1-sdai":
             engine_id = STABILITY_ENGINE_ID
@@ -115,7 +115,11 @@ async def text_to_image(request: TextToImageRequest):
             print("Stability Model", prompt_text)
 
             structured_input = {
-                "text_prompts": [{"text": prompt_text}],
+                "text_prompts": [
+                    {
+                        "text": prompt_text
+                    }
+                ],
             }
 
             response = requests.post(
@@ -123,7 +127,7 @@ async def text_to_image(request: TextToImageRequest):
                 headers={
                     "Content-Type": "application/json",
                     "Accept": "application/json",
-                    "Authorization": f"Bearer {api_key}",
+                    "Authorization": f"Bearer {api_key}"
                 },
                 json=structured_input,
             )
@@ -149,7 +153,7 @@ async def text_to_image(request: TextToImageRequest):
             headers = {
                 "accept": "application/json",
                 "content-type": "application/json",
-                "Authorization": f"Bearer {GETIMG_API_KEY}",
+                "Authorization": f"Bearer {GETIMG_API_KEY}"
             }
             response = requests.post(url, json=input_data, headers=headers)
             if response.status_code != 200:
@@ -185,7 +189,7 @@ class TextAndImageToImageRequest(BaseModel):
     cfg_scale: Optional[float] = 7.5
     samples: Optional[int] = 1
     steps: Optional[int] = 50
-    init_image_mode: Optional[str] = "image"
+    init_image_mode: Optional[str] = 'image'
 
 
 class TextAndImageToImageResponse(BaseModel):
@@ -213,9 +217,7 @@ async def text_and_image_to_image(request: TextAndImageToImageRequest):
         image_urls = []
 
         if download_image_response.status_code != 200:
-            raise HTTPException(
-                status_code=400, detail="Failed to download image from the provided URL"
-            )
+            raise HTTPException(status_code=400, detail="Failed to download image from the provided URL")
 
         local_files = []
 
@@ -224,20 +226,17 @@ async def text_and_image_to_image(request: TextAndImageToImageRequest):
                 "accept": "application/json",
             }
             files = {
-                "input_image": ("image.jpg", download_image_response.content),
-                "prompt": (None, prompt),
-                "negative_prompt": (None, negative_prompt),
-                "image_strength": (None, str(image_strength)),
-                "cfg_scale": (None, str(cfg_scale)),
-                "samples": (None, str(samples)),
-                "steps": (None, str(steps)),
-                "init_image_mode": (None, init_image_mode),
+                'input_image': ("image.jpg", download_image_response.content),
+                'prompt': (None, prompt),
+                'negative_prompt': (None, negative_prompt),
+                'image_strength': (None, str(image_strength)),
+                'cfg_scale': (None, str(cfg_scale)),
+                'samples': (None, str(samples)),
+                'steps': (None, str(steps)),
+                'init_image_mode': (None, init_image_mode)
             }
             response = requests.post(
-                "http://127.0.0.1:8888/v1/generation/image-to-image",
-                headers=headers,
-                files=files,
-            )
+                "http://127.0.0.1:8888/v1/generation/image-to-image", headers=headers, files=files)
 
             if response.status_code == 200:
                 response_json = response.json()
@@ -245,9 +244,7 @@ async def text_and_image_to_image(request: TextAndImageToImageRequest):
                 uploaded_url = await uploadImage(image_url, user_id, model_id)
                 image_urls.append({"url": uploaded_url, "finish_reason": "SUCCESS"})
             else:
-                raise HTTPException(
-                    status_code=response.status_code, detail=response.text
-                )
+                raise HTTPException(status_code=response.status_code, detail=response.text)
 
         elif model_id == "sd1-sdai":
             engine_id = STABILITY_ENGINE_ID
@@ -260,9 +257,11 @@ async def text_and_image_to_image(request: TextAndImageToImageRequest):
                 f"{api_host}/v1/generation/{engine_id}/image-to-image",
                 headers={
                     "Accept": "application/json",
-                    "Authorization": f"Bearer {api_key}",
+                    "Authorization": f"Bearer {api_key}"
                 },
-                files={"init_image": ("image.jpg", download_image_response.content)},
+                files={
+                    "init_image": ("image.jpg", download_image_response.content)
+                },
                 data={
                     "image_strength": float(image_strength),
                     "init_image_mode": init_image_mode,
@@ -270,7 +269,7 @@ async def text_and_image_to_image(request: TextAndImageToImageRequest):
                     "cfg_scale": int(cfg_scale),
                     "samples": int(samples),
                     "steps": int(steps),
-                },
+                }
             )
 
             if response.status_code != 200:
@@ -292,9 +291,7 @@ async def text_and_image_to_image(request: TextAndImageToImageRequest):
 
         elif model_id == "sd-getai":
             url = "https://api.getimg.ai/v1/stable-diffusion/image-to-image"
-            base64_encoded_str = base64.b64encode(
-                download_image_response.content
-            ).decode("utf-8")
+            base64_encoded_str = base64.b64encode(download_image_response.content).decode("utf-8")
             payload = {
                 "model": "stable-diffusion-v1-5",
                 "prompt": prompt,
@@ -305,12 +302,12 @@ async def text_and_image_to_image(request: TextAndImageToImageRequest):
                 "guidance": cfg_scale,
                 "seed": 0,
                 "scheduler": "dpmsolver++",
-                "output_format": "jpeg",
+                "output_format": "jpeg"
             }
             headers = {
                 "accept": "application/json",
                 "content-type": "application/json",
-                "Authorization": f"Bearer {GETIMG_API_KEY}",
+                "Authorization": f"Bearer {GETIMG_API_KEY}"
             }
             response = requests.post(url, json=payload, headers=headers)
             if response.status_code != 200:
@@ -390,13 +387,9 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
         download_image_response2 = requests.get(file2)
 
         if download_image_response1.status_code != 200:
-            raise HTTPException(
-                status_code=400, detail="Failed to download image from the provided URL"
-            )
+            raise HTTPException(status_code=400, detail="Failed to download image from the provided URL")
         if download_image_response2.status_code != 200:
-            raise HTTPException(
-                status_code=400, detail="Failed to download image from the provided URL"
-            )
+            raise HTTPException(status_code=400, detail="Failed to download image from the provided URL")
 
         image_urls = []
         local_files = []
@@ -406,41 +399,35 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
                 "accept": "application/json",
             }
             files = {
-                "sharpness": (None, sharpness),
-                "input_mask": ("image1.jpg", download_image_response2.content),
-                "outpaint_distance_right": (None, "0"),
-                "loras": (
-                    None,
-                    '[{"model_name":"sd_xl_offset_example-lora_1.0.safetensors","weight":0.1}]',
-                ),
-                "outpaint_distance_left": (None, "0"),
-                "advanced_params": (None, ""),
-                "guidance_scale": (None, "4"),
-                "prompt": (None, prompt),
-                "input_image": ("image2.jpg", download_image_response1.content),
-                "outpaint_distance_bottom": (None, "0"),
-                "require_base64": (None, "false"),
-                "async_process": (None, "false"),
-                "image_number": (None, image_number),
-                "negative_prompt": (None, negative_prompt),
-                "refiner_switch": (None, "0.5"),
-                "base_model_name": (None, base_model_name),
-                "image_seed": (None, "-1"),
-                "style_selections": (None, style_selections),
-                "inpaint_additional_prompt": (None, ""),
-                "outpaint_selections": (None, ""),
-                "outpaint_distance_top": (None, "0"),
-                "refiner_model_name": (None, "None"),
-                "cn_stop1": (None, ""),
-                "aspect_ratios_selection": (None, "1152*896"),
-                "performance_selection": (None, performance_selection),
+                'sharpness': (None, sharpness),
+                'input_mask': ("image1.jpg", download_image_response2.content),
+                'outpaint_distance_right': (None, '0'),
+                'loras': (None, '[{"model_name":"sd_xl_offset_example-lora_1.0.safetensors","weight":0.1}]'),
+                'outpaint_distance_left': (None, '0'),
+                'advanced_params': (None, ''),
+                'guidance_scale': (None, '4'),
+                'prompt': (None, prompt),
+                'input_image': ("image2.jpg", download_image_response1.content),
+                'outpaint_distance_bottom': (None, '0'),
+                'require_base64': (None, 'false'),
+                'async_process': (None, 'false'),
+                'image_number': (None, image_number),
+                'negative_prompt': (None, negative_prompt),
+                'refiner_switch': (None, '0.5'),
+                'base_model_name': (None, base_model_name),
+                'image_seed': (None, '-1'),
+                'style_selections': (None, style_selections),
+                'inpaint_additional_prompt': (None, ''),
+                'outpaint_selections': (None, ''),
+                'outpaint_distance_top': (None, '0'),
+                'refiner_model_name': (None, 'None'),
+                'cn_stop1': (None, ''),
+                'aspect_ratios_selection': (None, '1152*896'),
+                'performance_selection': (None, performance_selection)
             }
 
             response = requests.post(
-                "http://127.0.0.1:8888/v1/generation/image-inpaint-outpaint",
-                headers=headers,
-                files=files,
-            )
+                "http://127.0.0.1:8888/v1/generation/image-inpaint-outpaint", headers=headers, files=files)
 
             if response.status_code == 200:
                 response_json = response.json()
@@ -448,9 +435,7 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
                 uploaded_url = await uploadImage(image_url, user_id, model_id)
                 image_urls.append({"url": uploaded_url, "finish_reason": "SUCCESS"})
             else:
-                raise HTTPException(
-                    status_code=response.status_code, detail=response.text
-                )
+                raise HTTPException(status_code=response.status_code, detail=response.text)
 
         elif model_id == "sd1-sdai":
             engine_id = STABILITY_ENGINE_ID
@@ -462,12 +447,12 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
             response = requests.post(
                 f"{api_host}/v1/generation/{engine_id}/image-to-image/masking",
                 headers={
-                    "Accept": "application/json",
-                    "Authorization": f"Bearer {api_key}",
+                    "Accept": 'application/json',
+                    "Authorization": f"Bearer {api_key}"
                 },
                 files={
-                    "init_image": ("image1.jpg", download_image_response1.content),
-                    "mask_image": ("image2.jpg", download_image_response2.content),
+                    'init_image': ("image1.jpg", download_image_response1.content),
+                    'mask_image': ("image2.jpg", download_image_response2.content)
                 },
                 data={
                     "mask_source": mask_source,
@@ -476,7 +461,7 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
                     "cfg_scale": int(cfg_scale),
                     "samples": int(samples),
                     "steps": int(steps),
-                },
+                }
             )
             if response.status_code != 200:
                 raise Exception("Non-200 response: " + str(response.text))
@@ -490,21 +475,15 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
                 local_files.append(file_path)
                 with open(file_path, "wb") as f:
                     f.write(base64.b64decode(image["base64"]))
-                    image_url = await uploadImage(
-                        f"http://127.0.0.1:8005/images/{file_path}", user_id, model_id
-                    )
+                    image_url = await uploadImage(f"http://127.0.0.1:8005/images/{file_path}", user_id, model_id)
                     image_urls.append({"url": image_url, "finish_reason": "SUCCESS"})
 
             remove_images(local_files)
 
         elif model_id == "sd-getai":
             url = "https://api.getimg.ai/v1/stable-diffusion/inpaint"
-            base64_encoded_str1 = base64.b64encode(
-                download_image_response1.content
-            ).decode("utf-8")
-            base64_encoded_str2 = base64.b64encode(
-                download_image_response2.content
-            ).decode("utf-8")
+            base64_encoded_str1 = base64.b64encode(download_image_response1.content).decode("utf-8")
+            base64_encoded_str2 = base64.b64encode(download_image_response2.content).decode("utf-8")
 
             payload = {
                 "model": "stable-diffusion-v1-5-inpainting",
@@ -519,12 +498,12 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
                 "guidance": 7.5,
                 "seed": 0,
                 "scheduler": "ddim",
-                "output_format": "jpeg",
+                "output_format": "jpeg"
             }
             headers = {
                 "accept": "application/json",
                 "content-type": "application/json",
-                "Authorization": f"Bearer {GETIMG_API_KEY}",
+                "Authorization": f"Bearer {GETIMG_API_KEY}"
             }
 
             response = requests.post(url, json=payload, headers=headers)
@@ -569,31 +548,23 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
 #         download_image_response2 = requests.get(file2)
 
 #         if download_image_response1.status_code != 200:
-#             raise HTTPException(
-#                 status_code=400, detail="Failed to download image from the provided URL"
-#             )
+#             raise HTTPException(status_code=400, detail="Failed to download image from the provided URL")
 #         if download_image_response2.status_code != 200:
-#             raise HTTPException(
-#                 status_code=400, detail="Failed to download image from the provided URL"
-#             )
+#             raise HTTPException(status_code=400, detail="Failed to download image from the provided URL")
 
-#         model = InceptionV3(include_top=False, pooling="avg", input_shape=(299, 299, 3))
+#         model = InceptionV3(include_top=False, pooling='avg', input_shape=(299, 299, 3))
 
 #         reference_image_folder = "images_training/converted"
 #         reference_images = load_images_from_folder(reference_image_folder)
 #         num_files = len(os.listdir(reference_image_folder))
 #         reference_images = reference_images.reshape((num_files, 32, 32, 3))
 
-#         uploaded_image = Image.open(BytesIO(download_image_response1.content)).resize(
-#             (32, 32)
-#         )
+#         uploaded_image = Image.open(BytesIO(download_image_response1.content)).resize((32, 32))
 #         uploaded_image = np.array(uploaded_image)
 #         uploaded_image = np.expand_dims(uploaded_image, axis=0)
 #         uploaded_image = preprocess_input(uploaded_image)
 
-#         uploaded_image2 = Image.open(BytesIO(download_image_response2.content)).resize(
-#             (32, 32)
-#         )
+#         uploaded_image2 = Image.open(BytesIO(download_image_response2.content)).resize((32, 32))
 #         uploaded_image2 = np.array(uploaded_image2)
 #         uploaded_image2 = np.expand_dims(uploaded_image2, axis=0)
 #         uploaded_image2 = preprocess_input(uploaded_image2)
@@ -601,9 +572,9 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
 #         images1 = np.repeat(uploaded_image, num_files, axis=0)
 #         images2 = np.repeat(uploaded_image2, num_files, axis=0)
 
-#         reference_images = reference_images.astype("float32")
-#         images1 = images1.astype("float32")
-#         images2 = images2.astype("float32")
+#         reference_images = reference_images.astype('float32')
+#         images1 = images1.astype('float32')
+#         images2 = images2.astype('float32')
 
 #         reference_images = scale_images(reference_images, (299, 299, 3))
 #         images1 = scale_images(images1, (299, 299, 3))
@@ -617,22 +588,16 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
 
 #         result = ""
 #         if fid_score1 < fid_score2:
-#             result = (
-#                 "Stability model has displayed best results according to the FID score."
-#             )
+#             result = "Stability model has displayed best results according to the FID score."
 #         elif fid_score1 > fid_score2:
-#             result = (
-#                 "GetImg model has displayed best results according to the FID score."
-#             )
+#             result = "GetImg model has displayed best results according to the FID score."
 #         else:
-#             result = (
-#                 "Both models have displayed similar results according to the FID score."
-#             )
+#             result = "Both models have displayed similar results according to the FID score."
 
 #         return {
 #             "stability_image_fid_score": fid_score1,
 #             "getimg_image_fid_score": fid_score2,
-#             "result": result,
+#             "result": result
 #         }
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail="Internal server error")
@@ -661,24 +626,16 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
 #         download_image_response2 = requests.get(file2)
 
 #         if download_image_response1.status_code != 200:
-#             raise HTTPException(
-#                 status_code=400, detail="Failed to download image from the provided URL"
-#             )
+#             raise HTTPException(status_code=400, detail="Failed to download image from the provided URL")
 #         if download_image_response2.status_code != 200:
-#             raise HTTPException(
-#                 status_code=400, detail="Failed to download image from the provided URL"
-#             )
+#             raise HTTPException(status_code=400, detail="Failed to download image from the provided URL")
 
-#         uploaded_image1 = Image.open(BytesIO(download_image_response1.content)).resize(
-#             (32, 32)
-#         )
+#         uploaded_image1 = Image.open(BytesIO(download_image_response1.content)).resize((32, 32))
 #         uploaded_image1 = np.array(uploaded_image1)
 #         uploaded_image1 = np.expand_dims(uploaded_image1, axis=0)
 #         uploaded_image1 = preprocess_input(uploaded_image1)
 
-#         uploaded_image2 = Image.open(BytesIO(download_image_response2.content)).resize(
-#             (32, 32)
-#         )
+#         uploaded_image2 = Image.open(BytesIO(download_image_response2.content)).resize((32, 32))
 #         uploaded_image2 = np.array(uploaded_image2)
 #         uploaded_image2 = np.expand_dims(uploaded_image2, axis=0)
 #         uploaded_image2 = preprocess_input(uploaded_image2)
@@ -696,22 +653,16 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
 
 #         result = ""
 #         if sd_clip_score1 < sd_clip_score2:
-#             result = (
-#                 "GetImg model has displayed best results according to the Clip Score."
-#             )
+#             result = "GetImg model has displayed best results according to the Clip Score."
 #         elif sd_clip_score1 > sd_clip_score2:
-#             result = (
-#                 "Stability model has displayed best results according to the Clip Score"
-#             )
+#             result = "Stability model has displayed best results according to the Clip Score"
 #         else:
-#             result = (
-#                 "Both models have displayed best results according to the clip score."
-#             )
+#             result = "Both models have displayed best results according to the clip score."
 
 #         return {
 #             "stability_image_clip_score": sd_clip_score1,
 #             "getimg_image_clip_score": sd_clip_score2,
-#             "result": result,
+#             "result": result
 #         }
 
 #     except Exception as e:
@@ -719,4 +670,4 @@ async def inpaintAndOutpaint(request: InpaintAndOutpaintRequest):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=80)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
